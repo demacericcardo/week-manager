@@ -5,10 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Week Manager</title>
   <style>
-    /* ---------- Base layout ---------- */
     :root {
       --gap: 4px;
-      --default-color: #e8eaed; /* neutral default block color */
+      --default-color: #e8eaed;
       --radius: 6px;
       --accent: #1a73e8;
     }
@@ -21,7 +20,6 @@
       font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       background: #fafafa;
       color: #222;
-      /* Fill the viewport and lay out vertically so the grid can take the rest */
       height: 100vh;
       display: flex;
       flex-direction: column;
@@ -35,17 +33,8 @@
       gap: 12px;
       margin-bottom: 12px;
     }
-
-    header.page-header h1 {
-      font-size: 1.4rem;
-      margin: 0;
-    }
-
-    .header-hint {
-      font-size: 0.78rem;
-      color: #777;
-      margin-left: 8px;
-    }
+    header.page-header h1 { font-size: 1.4rem; margin: 0; }
+    .header-hint { font-size: 0.75rem; color: #888; margin-left: 8px; }
 
     #reset-btn {
       padding: 8px 14px;
@@ -57,9 +46,7 @@
     }
     #reset-btn:hover { background: #f0f0f0; }
 
-    /* ---------- Schedule: one grid so headers and cells stay aligned ----------
-       Column layout: [hour label] + 7 day columns.
-       Row layout:    [weekday header] + 24 hour rows. */
+    /* ---------- Schedule grid ---------- */
     .schedule {
       flex: 1;
       min-height: 0;
@@ -67,10 +54,9 @@
       grid-template-columns: auto repeat(7, 1fr);
       grid-template-rows: auto repeat(24, 1fr);
       gap: var(--gap);
-      user-select: none; /* prevent text selection while drag-selecting */
+      user-select: none;
     }
 
-    /* Column header (weekday) */
     .weekday {
       text-align: center;
       font-weight: 600;
@@ -81,7 +67,6 @@
       align-self: center;
     }
 
-    /* Row header (hour), pinned to the left column */
     .hour {
       display: flex;
       align-items: center;
@@ -93,13 +78,12 @@
       white-space: nowrap;
     }
 
-    /* Empty top-left corner where the two header axes meet */
     .corner { background: transparent; }
 
-    /* ---------- Individual block ---------- */
+    /* ---------- Block ---------- */
     .block {
       position: relative;
-      min-height: 0;              /* allow blocks to shrink to fit the viewport */
+      min-height: 0;
       border-radius: var(--radius);
       background: var(--default-color);
       display: flex;
@@ -107,32 +91,26 @@
       justify-content: center;
       padding: 2px 4px;
       cursor: pointer;
-      transition: background 0.15s ease, transform 0.05s ease;
+      transition: background 0.15s ease;
       box-shadow: 0 1px 2px rgba(0,0,0,0.08);
       overflow: hidden;
     }
-    .block:active { transform: scale(0.98); }
-
-    /* Highlight for drag-selected blocks */
     .block.selected {
       outline: 3px solid var(--accent);
       outline-offset: -3px;
     }
-
     .block .label {
-      /* Bigger and bolder, but scales with viewport height so all 24 rows fit */
       font-size: clamp(0.7rem, 1.6vh, 1.1rem);
       font-weight: 700;
       line-height: 1.1;
       text-align: center;
       word-break: break-word;
-      /* readable on any background */
       color: #1a1a1a;
       text-shadow: 0 1px 1px rgba(255,255,255,0.4);
       pointer-events: none;
     }
 
-    /* ---------- Edit modal ---------- */
+    /* ---------- Shared overlay base ---------- */
     .overlay {
       position: fixed;
       inset: 0;
@@ -146,61 +124,138 @@
 
     .modal {
       background: #fff;
-      border-radius: 12px;
-      padding: 20px;
-      width: min(360px, 90vw);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+      border-radius: 14px;
+      padding: 24px;
+      width: min(420px, 93vw);
+      box-shadow: 0 12px 36px rgba(0,0,0,0.22);
+      max-height: 90vh;
+      overflow-y: auto;
     }
-    .modal h2 { margin: 0 0 16px; font-size: 1.1rem; }
+    .modal h2 { margin: 0 0 18px; font-size: 1.1rem; }
 
+    /* ---------- Form fields ---------- */
     .field { margin-bottom: 16px; }
-    .field > label {
-      display: block;
+    .field-label {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      margin-bottom: 7px;
+    }
+    .field-label .lbl {
       font-size: 0.8rem;
       font-weight: 600;
       color: #555;
-      margin-bottom: 6px;
     }
-    .field input[type="text"] {
+    .field-hint { font-size: 0.72rem; color: #aaa; }
+
+    input[type="text"] {
       width: 100%;
-      padding: 9px;
+      padding: 9px 10px;
       border: 1px solid #ccc;
       border-radius: 8px;
       font-size: 0.95rem;
+      font-family: inherit;
     }
-    .color-field { display: flex; align-items: center; gap: 8px; }
-    .color-field input[type="color"] {
-      width: 44px;
-      height: 32px;
-      padding: 0;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      cursor: pointer;
-      background: #fff;
+    input[type="text"]:focus {
+      outline: 2px solid var(--accent);
+      border-color: transparent;
     }
-    .color-field label { font-size: 0.9rem; color: #333; cursor: pointer; }
 
-    .modal-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
-      margin-top: 4px;
+    /* ---------- Color row ---------- */
+    .color-row { display: flex; align-items: center; gap: 10px; }
+    .color-row input[type="color"] {
+      width: 44px;
+      height: 34px;
+      padding: 2px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      cursor: pointer;
+      flex-shrink: 0;
     }
+    .color-apply-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.88rem;
+      color: #444;
+      cursor: pointer;
+    }
+
+    /* ---------- Block types ---------- */
+    .types-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      min-height: 28px;
+    }
+    .types-empty { font-size: 0.82rem; color: #bbb; font-style: italic; }
+
+    .type-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 4px 6px 4px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border: 2px solid transparent;
+      transition: opacity 0.1s, border-color 0.1s;
+    }
+    .type-chip:hover { opacity: 0.85; }
+    .type-chip.active { border-color: rgba(0,0,0,0.35); }
+
+    .type-chip-del {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1;
+      opacity: 0.55;
+      padding: 0 2px;
+      font-family: inherit;
+    }
+    .type-chip-del:hover { opacity: 1; }
+
+    .save-type-btn {
+      width: 100%;
+      background: transparent;
+      border: 1px dashed #bbb;
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 0.82rem;
+      color: #666;
+      cursor: pointer;
+      font-family: inherit;
+      margin-top: 10px;
+    }
+    .save-type-btn:hover { background: #f7f7f7; border-color: #888; }
+
+    .divider { height: 1px; background: #eee; margin: 14px 0; }
+
+    /* ---------- Modal actions ---------- */
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
     .modal-actions button {
-      padding: 8px 16px;
+      padding: 9px 18px;
       border-radius: 8px;
       border: 1px solid #ccc;
       background: #fff;
       cursor: pointer;
       font-size: 0.9rem;
+      font-weight: 500;
+      font-family: inherit;
     }
-    .modal-actions .btn-primary {
-      background: var(--accent);
-      color: #fff;
-      border-color: var(--accent);
-    }
+    .modal-actions button:hover { background: #f5f5f5; }
+    .btn-primary { background: var(--accent) !important; color: #fff !important; border-color: var(--accent) !important; }
+    .btn-primary:hover { opacity: 0.9; background: var(--accent) !important; }
+    .btn-danger { background: #d93025 !important; color: #fff !important; border-color: #d93025 !important; }
+    .btn-danger:hover { opacity: 0.9; background: #d93025 !important; }
 
-    /* ---------- Floating action bar for multi-selection ---------- */
+    /* ---------- Confirm modal ---------- */
+    .confirm-modal { width: min(320px, 93vw); }
+    .confirm-modal p { margin: 0 0 22px; font-size: 0.95rem; line-height: 1.5; color: #333; }
+
+    /* ---------- Action bar ---------- */
     .action-bar {
       position: fixed;
       bottom: 18px;
@@ -211,14 +266,15 @@
       border-radius: 999px;
       padding: 8px 10px 8px 18px;
       display: none;
-      gap: 12px;
+      gap: 10px;
       align-items: center;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+      box-shadow: 0 6px 24px rgba(0,0,0,0.32);
       z-index: 40;
+      white-space: nowrap;
     }
     .action-bar.open { display: flex; }
     .action-bar .count { font-size: 0.85rem; font-weight: 600; }
-    .action-bar button {
+    .ab-btn {
       background: #fff;
       color: #1a1a1a;
       border: none;
@@ -227,15 +283,21 @@
       cursor: pointer;
       font-size: 0.85rem;
       font-weight: 600;
+      font-family: inherit;
     }
-    .action-bar .clear-btn {
+    .ab-btn:hover { background: #eee; }
+    .clear-btn {
       background: transparent;
-      color: #fff;
-      text-decoration: underline;
+      color: rgba(255,255,255,0.75);
+      border: none;
       padding: 7px 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      text-decoration: underline;
+      font-family: inherit;
     }
+    .clear-btn:hover { color: #fff; }
 
-    /* Small responsiveness tweak for narrow screens */
     @media (max-width: 600px) {
       body { padding: 10px; }
       .weekday { font-size: 0.6rem; }
@@ -245,30 +307,51 @@
   </style>
 </head>
 <body>
+
   <header class="page-header">
-    <h1>Week Manager <span class="header-hint">Click a block to edit · drag to select multiple</span></h1>
+    <h1>Week Manager
+      <span class="header-hint">Click to edit · drag to select · Shift+drag to toggle-add</span>
+    </h1>
     <button id="reset-btn" type="button">Reset</button>
   </header>
 
-  <!-- Single grid: weekday headers across the top, hour labels down the left,
-       and 7×24 = 168 blocks filling the body. -->
   <main class="schedule" id="schedule"></main>
 
-  <!-- Edit modal: rename and/or recolor one or many blocks in one place. -->
-  <div class="overlay" id="overlay">
-    <div class="modal" role="dialog" aria-modal="true">
+  <!-- ===== Edit modal ===== -->
+  <div class="overlay" id="edit-overlay">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <h2 id="modal-title">Edit block</h2>
+
+      <!-- Saved block types -->
       <div class="field">
-        <label for="modal-name">Name</label>
+        <div class="field-label">
+          <span class="lbl">Block types</span>
+          <span class="field-hint">click to apply</span>
+        </div>
+        <div class="types-list" id="types-list"></div>
+        <button type="button" class="save-type-btn" id="save-as-type-btn">+ Save current name &amp; color as new type</button>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Name -->
+      <div class="field">
+        <div class="field-label"><span class="lbl">Name</span></div>
         <input type="text" id="modal-name" autocomplete="off" />
       </div>
+
+      <!-- Color -->
       <div class="field">
-        <div class="color-field">
+        <div class="field-label"><span class="lbl">Color</span></div>
+        <div class="color-row">
           <input type="color" id="modal-color" />
-          <input type="checkbox" id="modal-color-apply" />
-          <label for="modal-color-apply">Change color</label>
+          <label class="color-apply-label" for="modal-color-apply">
+            <input type="checkbox" id="modal-color-apply" />
+            Apply color
+          </label>
         </div>
       </div>
+
       <div class="modal-actions">
         <button type="button" id="modal-cancel">Cancel</button>
         <button type="button" id="modal-save" class="btn-primary">Save</button>
@@ -276,115 +359,138 @@
     </div>
   </div>
 
-  <!-- Action bar shown when multiple blocks are selected. -->
+  <!-- ===== Confirm modal ===== -->
+  <div class="overlay" id="confirm-overlay">
+    <div class="modal confirm-modal" role="alertdialog" aria-modal="true">
+      <p id="confirm-message"></p>
+      <div class="modal-actions">
+        <button type="button" id="confirm-cancel">Cancel</button>
+        <button type="button" id="confirm-ok" class="btn-danger">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Action bar ===== -->
   <div class="action-bar" id="action-bar">
-    <span class="count" id="action-count">0 selected</span>
-    <button type="button" id="action-edit">Edit name / color</button>
+    <span class="count" id="action-count"></span>
+    <button type="button" class="ab-btn" id="action-edit">Edit name / color</button>
     <button type="button" class="clear-btn" id="action-clear">Clear</button>
   </div>
 
   <script>
-    // ---------- Configuration ----------
-    const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    // ===== Constants =====
+    const DAYS  = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
     const HOURS = 24;
-    const COLS = DAYS.length;
-    const TOTAL = COLS * HOURS; // 168 blocks
-    const DEFAULT_COLOR = '#e8eaed';   // neutral default
-    const STORAGE_KEY = 'week-manager-blocks';
+    const COLS  = DAYS.length;
+    const TOTAL = COLS * HOURS; // 168
+    const DEFAULT_COLOR  = '#e8eaed';
+    const BLOCKS_KEY = 'week-manager-blocks';
+    const TYPES_KEY  = 'week-manager-types';
 
-    // Hour label for a row, e.g. 0 -> "00:00", 9 -> "09:00".
-    function hourLabel(h) {
-      return `${String(h).padStart(2, '0')}:00`;
-    }
+    const pad = n => String(n).padStart(2, '0');
+    const hourLabel = h => `${pad(h)}:00`;
 
-    // ---------- State ----------
-    // blocks[i] = { name, color }, ordered row-major: index = hour * COLS + day.
-    let blocks = loadState();
-    // Currently selected block indices.
-    const selection = new Set();
+    // ===== Persistent state =====
+    let blocks = loadBlocks();
+    let blockTypes = loadTypes();
 
-    function defaultState() {
-      return Array.from({ length: TOTAL }, (_, i) => ({
-        name: `Block ${i + 1}`,
-        color: DEFAULT_COLOR
-      }));
-    }
-
-    function loadState() {
+    function loadBlocks() {
       try {
-        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-        if (Array.isArray(saved) && saved.length === TOTAL) return saved;
-      } catch (_) { /* ignore malformed data */ }
-      return defaultState();
+        const s = JSON.parse(localStorage.getItem(BLOCKS_KEY));
+        if (Array.isArray(s) && s.length === TOTAL) return s;
+      } catch (_) {}
+      return defaultBlocks();
     }
-
-    function saveState() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(blocks));
+    function defaultBlocks() {
+      return Array.from({ length: TOTAL }, (_, i) => ({ name: `Block ${i+1}`, color: DEFAULT_COLOR }));
     }
+    function loadTypes() {
+      try {
+        const s = JSON.parse(localStorage.getItem(TYPES_KEY));
+        if (Array.isArray(s)) return s;
+      } catch (_) {}
+      return [];
+    }
+    function saveBlocks() { localStorage.setItem(BLOCKS_KEY, JSON.stringify(blocks)); }
+    function saveTypes()  { localStorage.setItem(TYPES_KEY,  JSON.stringify(blockTypes)); }
 
-    // ---------- Rendering ----------
+    // ===== Selection state =====
+    const selection  = new Set(); // current selected indices
+    let isDragging   = false;
+    let didMove      = false;     // did the pointer enter a different cell?
+    let dragStart    = null;      // { row, col }
+    let isShiftDrag  = false;
+    let selectionBase = new Set(); // snapshot of selection when shift-drag started
+
+    // ===== Grid rendering =====
     function renderSchedule() {
       const grid = document.getElementById('schedule');
       grid.innerHTML = '';
 
-      // Top-left empty corner, then the weekday column headers.
-      const corner = document.createElement('div');
-      corner.className = 'corner';
-      grid.appendChild(corner);
-      DAYS.forEach(day => {
-        const cell = document.createElement('div');
-        cell.className = 'weekday';
-        cell.textContent = day;
-        grid.appendChild(cell);
-      });
+      // Top-left corner + weekday headers
+      grid.appendChild(el('div', 'corner'));
+      DAYS.forEach(d => grid.appendChild(el('div', 'weekday', d)));
 
-      // One row per hour: the hour label, then 7 day blocks.
+      // Hour rows
       for (let h = 0; h < HOURS; h++) {
-        const hourCell = document.createElement('div');
-        hourCell.className = 'hour';
-        hourCell.textContent = hourLabel(h);
-        grid.appendChild(hourCell);
-
-        for (let d = 0; d < COLS; d++) {
-          grid.appendChild(createBlock(h * COLS + d, h, d));
-        }
+        grid.appendChild(el('div', 'hour', hourLabel(h)));
+        for (let d = 0; d < COLS; d++) grid.appendChild(createBlockEl(h * COLS + d, h, d));
       }
-      applySelectionHighlight();
+      syncHighlight();
     }
 
-    function createBlock(index, row, col) {
-      const block = blocks[index];
-      const el = document.createElement('div');
-      el.className = 'block';
-      el.style.background = block.color;
-      el.dataset.index = index;
-      el.dataset.row = row;
-      el.dataset.col = col;
+    function el(tag, cls, text = '') {
+      const e = document.createElement(tag);
+      e.className = cls;
+      if (text) e.textContent = text;
+      return e;
+    }
 
-      const label = document.createElement('span');
-      label.className = 'label';
-      label.textContent = block.name;
-      el.appendChild(label);
+    function createBlockEl(index, row, col) {
+      const data = blocks[index];
+      const div  = document.createElement('div');
+      div.className = 'block';
+      div.style.background = data.color;
+      div.dataset.index = index;
 
-      // Begin a (possibly drag) selection from this block.
-      el.addEventListener('pointerdown', e => {
+      const lbl = document.createElement('span');
+      lbl.className = 'label';
+      lbl.textContent = data.name;
+      div.appendChild(lbl);
+
+      div.addEventListener('pointerdown', e => {
         e.preventDefault();
-        isDragging = true;
-        dragStart = { row, col };
-        setSelectionRect(dragStart, dragStart);
+        isDragging  = true;
+        didMove     = false;
+        isShiftDrag = e.shiftKey;
+        dragStart   = { row, col };
+
+        if (isShiftDrag) {
+          selectionBase = new Set(selection);
+          applyToggleRect(dragStart, dragStart);
+        } else {
+          selection.clear();
+          selection.add(index);
+          syncHighlight();
+        }
       });
-      // Extend the selection rectangle as the pointer moves over blocks.
-      el.addEventListener('pointerenter', () => {
-        if (isDragging) setSelectionRect(dragStart, { row, col });
+
+      div.addEventListener('pointerenter', () => {
+        if (!isDragging) return;
+        if (row !== dragStart.row || col !== dragStart.col) didMove = true;
+        if (isShiftDrag) {
+          applyToggleRect(dragStart, { row, col });
+        } else {
+          setSelectionRect(dragStart, { row, col });
+        }
       });
-      return el;
+
+      return div;
     }
 
-    // ---------- Selection ----------
-    let isDragging = false;
-    let dragStart = null;
+    // ===== Selection logic =====
 
-    // Select every block inside the rectangle spanned by two cells.
+    // Replace selection with the bounding rectangle of two cells
     function setSelectionRect(a, b) {
       const r1 = Math.min(a.row, b.row), r2 = Math.max(a.row, b.row);
       const c1 = Math.min(a.col, b.col), c2 = Math.max(a.col, b.col);
@@ -392,55 +498,73 @@
       for (let r = r1; r <= r2; r++)
         for (let c = c1; c <= c2; c++)
           selection.add(r * COLS + c);
-      applySelectionHighlight();
+      syncHighlight();
     }
 
-    function applySelectionHighlight() {
-      document.querySelectorAll('.block').forEach(el => {
-        el.classList.toggle('selected', selection.has(Number(el.dataset.index)));
-      });
+    // Shift-drag: start from selectionBase and toggle every cell in the rect.
+    // Cells outside the rect are restored to their base state.
+    function applyToggleRect(a, b) {
+      const r1 = Math.min(a.row, b.row), r2 = Math.max(a.row, b.row);
+      const c1 = Math.min(a.col, b.col), c2 = Math.max(a.col, b.col);
+
+      selection.clear();
+      selectionBase.forEach(i => selection.add(i)); // restore base outside rect
+
+      for (let r = r1; r <= r2; r++) {
+        for (let c = c1; c <= c2; c++) {
+          const idx = r * COLS + c;
+          if (selectionBase.has(idx)) selection.delete(idx); // was selected → off
+          else                        selection.add(idx);    // was not → on
+        }
+      }
+      syncHighlight();
+    }
+
+    function syncHighlight() {
+      document.querySelectorAll('.block').forEach(e =>
+        e.classList.toggle('selected', selection.has(+e.dataset.index))
+      );
     }
 
     function clearSelection() {
       selection.clear();
-      applySelectionHighlight();
+      syncHighlight();
       updateActionBar();
     }
 
     function updateActionBar() {
       const bar = document.getElementById('action-bar');
-      bar.classList.toggle('open', selection.size > 1);
-      document.getElementById('action-count').textContent = `${selection.size} selected`;
+      bar.classList.toggle('open', selection.size > 0);
+      document.getElementById('action-count').textContent =
+        `${selection.size} block${selection.size === 1 ? '' : 's'} selected`;
     }
 
-    // Finish a drag anywhere on the page.
+    // Pointer up: decide between single-click-to-edit vs keeping multi-selection
     document.addEventListener('pointerup', () => {
       if (!isDragging) return;
       isDragging = false;
-      if (selection.size === 1) {
-        // A simple click → edit just that block.
-        openEditModal([...selection]);
+      if (!isShiftDrag && !didMove && selection.size === 1) {
+        openEditModal([...selection]); // simple click → go straight to edit
       } else {
-        // Multiple blocks → keep them highlighted and offer bulk actions.
         updateActionBar();
       }
     });
 
-    // Clicking outside any block clears the current selection.
+    // Click outside everything → clear
     document.addEventListener('pointerdown', e => {
       if (!e.target.closest('.block') &&
           !e.target.closest('.action-bar') &&
-          !e.target.closest('.modal')) {
+          !e.target.closest('.overlay')) {
         clearSelection();
       }
     });
 
-    // ---------- Edit modal ----------
-    const overlay = document.getElementById('overlay');
-    const nameInput = document.getElementById('modal-name');
-    const colorInput = document.getElementById('modal-color');
-    const colorApply = document.getElementById('modal-color-apply');
-    let editTargets = []; // indices the modal currently edits
+    // ===== Edit modal =====
+    const editOverlay      = document.getElementById('edit-overlay');
+    const modalName        = document.getElementById('modal-name');
+    const modalColor       = document.getElementById('modal-color');
+    const modalColorApply  = document.getElementById('modal-color-apply');
+    let editTargets = [];
 
     function openEditModal(indices) {
       editTargets = indices;
@@ -450,72 +574,165 @@
       document.getElementById('modal-title').textContent =
         multi ? `Edit ${indices.length} blocks` : 'Edit block';
 
-      // Name: prefilled for a single block; blank ("keep existing") for many.
-      nameInput.value = multi ? '' : first.name;
-      nameInput.placeholder = multi ? 'Leave blank to keep each name' : '';
+      modalName.value       = multi ? '' : first.name;
+      modalName.placeholder = multi ? 'Leave blank to keep each name' : '';
+      modalColor.value      = toHex(first.color);
+      modalColorApply.checked = !multi;
 
-      // Color: applied by default for a single block, opt-in for many.
-      colorInput.value = toHex(first.color);
-      colorApply.checked = !multi;
-
-      overlay.classList.add('open');
-      nameInput.focus();
-      nameInput.select();
+      renderTypesInModal();
+      editOverlay.classList.add('open');
+      modalName.focus();
+      if (!multi) modalName.select();
     }
 
-    function closeModal() {
-      overlay.classList.remove('open');
+    function closeEditModal() {
+      editOverlay.classList.remove('open');
       clearSelection();
     }
 
-    function saveModal() {
-      const name = nameInput.value.trim();
-      const applyColor = colorApply.checked;
-      const color = colorInput.value;
-
+    function saveEditModal() {
+      const name       = modalName.value.trim();
+      const applyColor = modalColorApply.checked;
+      const color      = modalColor.value;
       editTargets.forEach(idx => {
-        if (name !== '') blocks[idx].name = name;       // empty = keep existing
-        if (applyColor) blocks[idx].color = color;
+        if (name !== '') blocks[idx].name = name;
+        if (applyColor)  blocks[idx].color = color;
       });
-
-      saveState();
+      saveBlocks();
       renderSchedule();
-      closeModal();
+      closeEditModal();
     }
 
-    // <input type="color"> requires a 7-char hex; guard against odd values.
+    document.getElementById('modal-save').addEventListener('click', saveEditModal);
+    document.getElementById('modal-cancel').addEventListener('click', closeEditModal);
+    editOverlay.addEventListener('click', e => { if (e.target === editOverlay) closeEditModal(); });
+    modalColor.addEventListener('input', () => { modalColorApply.checked = true; });
+    modalName.addEventListener('keydown', e => { if (e.key === 'Enter') saveEditModal(); });
+
+    // ===== Block types =====
+    function renderTypesInModal() {
+      const list = document.getElementById('types-list');
+      list.innerHTML = '';
+
+      if (blockTypes.length === 0) {
+        list.appendChild(Object.assign(document.createElement('span'), {
+          className: 'types-empty',
+          textContent: 'No types yet'
+        }));
+        return;
+      }
+
+      blockTypes.forEach((type, i) => {
+        const chip = document.createElement('div');
+        chip.className = 'type-chip';
+        chip.style.background = type.color;
+        chip.style.color = contrastColor(type.color);
+
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = type.name;
+
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'type-chip-del';
+        delBtn.textContent = '×';
+        delBtn.title = 'Delete type';
+        delBtn.style.color = contrastColor(type.color);
+        delBtn.addEventListener('click', e => {
+          e.stopPropagation();
+          blockTypes.splice(i, 1);
+          saveTypes();
+          renderTypesInModal();
+        });
+
+        // Clicking the chip populates the name + color fields
+        chip.addEventListener('click', () => {
+          modalName.value = type.name;
+          modalColor.value = toHex(type.color);
+          modalColorApply.checked = true;
+          list.querySelectorAll('.type-chip').forEach(c => c.classList.remove('active'));
+          chip.classList.add('active');
+        });
+
+        chip.appendChild(nameSpan);
+        chip.appendChild(delBtn);
+        list.appendChild(chip);
+      });
+    }
+
+    document.getElementById('save-as-type-btn').addEventListener('click', () => {
+      const name  = modalName.value.trim();
+      const color = modalColor.value;
+      if (!name) { modalName.focus(); return; }
+      if (!blockTypes.some(t => t.name === name && t.color === color)) {
+        blockTypes.push({ id: String(Date.now()), name, color });
+        saveTypes();
+        renderTypesInModal();
+      }
+    });
+
+    // ===== Confirm modal (replaces native confirm()) =====
+    let confirmCb = null;
+
+    function openConfirm(message, onConfirm) {
+      document.getElementById('confirm-message').textContent = message;
+      confirmCb = onConfirm;
+      document.getElementById('confirm-overlay').classList.add('open');
+      document.getElementById('confirm-ok').focus();
+    }
+
+    function closeConfirm() {
+      document.getElementById('confirm-overlay').classList.remove('open');
+      confirmCb = null;
+    }
+
+    document.getElementById('confirm-ok').addEventListener('click', () => {
+      const cb = confirmCb;
+      closeConfirm();
+      if (cb) cb();
+    });
+    document.getElementById('confirm-cancel').addEventListener('click', closeConfirm);
+    document.getElementById('confirm-overlay').addEventListener('click', e => {
+      if (e.target === document.getElementById('confirm-overlay')) closeConfirm();
+    });
+
+    // ===== Action bar =====
+    document.getElementById('action-edit').addEventListener('click', () => openEditModal([...selection]));
+    document.getElementById('action-clear').addEventListener('click', clearSelection);
+
+    // ===== Reset =====
+    document.getElementById('reset-btn').addEventListener('click', () => {
+      openConfirm('Reset all blocks to their defaults? This cannot be undone.', () => {
+        blocks = defaultBlocks();
+        saveBlocks();
+        clearSelection();
+        renderSchedule();
+      });
+    });
+
+    // ===== Global keyboard =====
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        if (editOverlay.classList.contains('open')) closeEditModal();
+        else if (document.getElementById('confirm-overlay').classList.contains('open')) closeConfirm();
+        else clearSelection();
+      }
+    });
+
+    // ===== Utilities =====
     function toHex(color) {
       return /^#[0-9a-fA-F]{6}$/.test(color) ? color : DEFAULT_COLOR;
     }
 
-    document.getElementById('modal-save').addEventListener('click', saveModal);
-    document.getElementById('modal-cancel').addEventListener('click', closeModal);
-    // Clicking the dimmed backdrop (outside the dialog) cancels.
-    overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
-    // Typing a color value auto-enables "Change color".
-    colorInput.addEventListener('input', () => { colorApply.checked = true; });
-    // Keyboard: Enter saves, Escape cancels.
-    nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') saveModal(); });
-    document.addEventListener('keydown', e => {
-      if (e.key === 'Escape' && overlay.classList.contains('open')) closeModal();
-    });
+    // Return black or white, whichever contrasts better with a hex background
+    function contrastColor(hex) {
+      const h = toHex(hex);
+      const r = parseInt(h.slice(1,3), 16);
+      const g = parseInt(h.slice(3,5), 16);
+      const b = parseInt(h.slice(5,7), 16);
+      return (0.299*r + 0.587*g + 0.114*b) / 255 > 0.55 ? '#1a1a1a' : '#ffffff';
+    }
 
-    // ---------- Action bar ----------
-    document.getElementById('action-edit').addEventListener('click', () => {
-      openEditModal([...selection]);
-    });
-    document.getElementById('action-clear').addEventListener('click', clearSelection);
-
-    // ---------- Reset ----------
-    document.getElementById('reset-btn').addEventListener('click', () => {
-      if (!confirm('Reset all blocks to their defaults?')) return;
-      blocks = defaultState();
-      saveState();
-      clearSelection();
-      renderSchedule();
-    });
-
-    // ---------- Init ----------
+    // ===== Init =====
     renderSchedule();
   </script>
 </body>
