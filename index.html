@@ -10,6 +10,7 @@
       --gap: 4px;
       --default-color: #e8eaed; /* neutral default block color */
       --radius: 6px;
+      --accent: #1a73e8;
     }
 
     * { box-sizing: border-box; }
@@ -40,6 +41,12 @@
       margin: 0;
     }
 
+    .header-hint {
+      font-size: 0.78rem;
+      color: #777;
+      margin-left: 8px;
+    }
+
     #reset-btn {
       padding: 8px 14px;
       border: 1px solid #ccc;
@@ -60,6 +67,7 @@
       grid-template-columns: auto repeat(7, 1fr);
       grid-template-rows: auto repeat(24, 1fr);
       gap: var(--gap);
+      user-select: none; /* prevent text selection while drag-selecting */
     }
 
     /* Column header (weekday) */
@@ -73,7 +81,7 @@
       align-self: center;
     }
 
-    /* Row header (hour timespan), pinned to the left column */
+    /* Row header (hour), pinned to the left column */
     .hour {
       display: flex;
       align-items: center;
@@ -101,10 +109,15 @@
       cursor: pointer;
       transition: background 0.15s ease, transform 0.05s ease;
       box-shadow: 0 1px 2px rgba(0,0,0,0.08);
-      user-select: none;
       overflow: hidden;
     }
     .block:active { transform: scale(0.98); }
+
+    /* Highlight for drag-selected blocks */
+    .block.selected {
+      outline: 3px solid var(--accent);
+      outline-offset: -3px;
+    }
 
     .block .label {
       /* Bigger and bolder, but scales with viewport height so all 24 rows fit */
@@ -119,37 +132,121 @@
       pointer-events: none;
     }
 
-    /* Color picker pinned to a corner of each block */
-    .block .color-input {
-      position: absolute;
-      top: 3px;
-      right: 3px;
-      width: 16px;
-      height: 16px;
-      padding: 0;
-      border: none;
-      border-radius: 50%;
-      background: transparent;
-      cursor: pointer;
-      opacity: 0.8;
+    /* ---------- Edit modal ---------- */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
     }
-    .block .color-input:hover { opacity: 1; }
-    /* Hide the native swatch chrome so it reads as a small dot */
-    .block .color-input::-webkit-color-swatch-wrapper { padding: 0; }
-    .block .color-input::-webkit-color-swatch { border: 1px solid rgba(0,0,0,0.25); border-radius: 50%; }
-    .block .color-input::-moz-color-swatch { border: 1px solid rgba(0,0,0,0.25); border-radius: 50%; }
+    .overlay.open { display: flex; }
+
+    .modal {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      width: min(360px, 90vw);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+    .modal h2 { margin: 0 0 16px; font-size: 1.1rem; }
+
+    .field { margin-bottom: 16px; }
+    .field > label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 6px;
+    }
+    .field input[type="text"] {
+      width: 100%;
+      padding: 9px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 0.95rem;
+    }
+    .color-field { display: flex; align-items: center; gap: 8px; }
+    .color-field input[type="color"] {
+      width: 44px;
+      height: 32px;
+      padding: 0;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      cursor: pointer;
+      background: #fff;
+    }
+    .color-field label { font-size: 0.9rem; color: #333; cursor: pointer; }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .modal-actions button {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      background: #fff;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .modal-actions .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    /* ---------- Floating action bar for multi-selection ---------- */
+    .action-bar {
+      position: fixed;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1a1a1a;
+      color: #fff;
+      border-radius: 999px;
+      padding: 8px 10px 8px 18px;
+      display: none;
+      gap: 12px;
+      align-items: center;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+      z-index: 40;
+    }
+    .action-bar.open { display: flex; }
+    .action-bar .count { font-size: 0.85rem; font-weight: 600; }
+    .action-bar button {
+      background: #fff;
+      color: #1a1a1a;
+      border: none;
+      border-radius: 999px;
+      padding: 7px 14px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .action-bar .clear-btn {
+      background: transparent;
+      color: #fff;
+      text-decoration: underline;
+      padding: 7px 6px;
+    }
 
     /* Small responsiveness tweak for narrow screens */
     @media (max-width: 600px) {
       body { padding: 10px; }
       .weekday { font-size: 0.6rem; }
       .hour { padding-right: 4px; }
+      .header-hint { display: none; }
     }
   </style>
 </head>
 <body>
   <header class="page-header">
-    <h1>Week Manager</h1>
+    <h1>Week Manager <span class="header-hint">Click a block to edit · drag to select multiple</span></h1>
     <button id="reset-btn" type="button">Reset</button>
   </header>
 
@@ -157,26 +254,56 @@
        and 7×24 = 168 blocks filling the body. -->
   <main class="schedule" id="schedule"></main>
 
+  <!-- Edit modal: rename and/or recolor one or many blocks in one place. -->
+  <div class="overlay" id="overlay">
+    <div class="modal" role="dialog" aria-modal="true">
+      <h2 id="modal-title">Edit block</h2>
+      <div class="field">
+        <label for="modal-name">Name</label>
+        <input type="text" id="modal-name" autocomplete="off" />
+      </div>
+      <div class="field">
+        <div class="color-field">
+          <input type="color" id="modal-color" />
+          <input type="checkbox" id="modal-color-apply" />
+          <label for="modal-color-apply">Change color</label>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" id="modal-cancel">Cancel</button>
+        <button type="button" id="modal-save" class="btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action bar shown when multiple blocks are selected. -->
+  <div class="action-bar" id="action-bar">
+    <span class="count" id="action-count">0 selected</span>
+    <button type="button" id="action-edit">Edit name / color</button>
+    <button type="button" class="clear-btn" id="action-clear">Clear</button>
+  </div>
+
   <script>
     // ---------- Configuration ----------
     const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const HOURS = 24;
-    const TOTAL = DAYS.length * HOURS; // 168 blocks
+    const COLS = DAYS.length;
+    const TOTAL = COLS * HOURS; // 168 blocks
     const DEFAULT_COLOR = '#e8eaed';   // neutral default
     const STORAGE_KEY = 'week-manager-blocks';
 
-    // Hour-span label for a given hour, e.g. 0 -> "00–01", 23 -> "23–00".
+    // Hour label for a row, e.g. 0 -> "00:00", 9 -> "09:00".
     function hourLabel(h) {
-      const pad = n => String(n).padStart(2, '0');
-      return `${pad(h)}–${pad((h + 1) % 24)}`;
+      return `${String(h).padStart(2, '0')}:00`;
     }
 
     // ---------- State ----------
-    // blocks[i] = { name, color }, ordered row-major: index = hour * 7 + day.
+    // blocks[i] = { name, color }, ordered row-major: index = hour * COLS + day.
     let blocks = loadState();
+    // Currently selected block indices.
+    const selection = new Set();
 
     function defaultState() {
-      // 168 blocks with placeholder names and the neutral default color
       return Array.from({ length: TOTAL }, (_, i) => ({
         name: `Block ${i + 1}`,
         color: DEFAULT_COLOR
@@ -186,7 +313,6 @@
     function loadState() {
       try {
         const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-        // Basic validation: must be an array of the expected length
         if (Array.isArray(saved) && saved.length === TOTAL) return saved;
       } catch (_) { /* ignore malformed data */ }
       return defaultState();
@@ -212,64 +338,149 @@
         grid.appendChild(cell);
       });
 
-      // One row per hour: the hour-span label, then 7 day blocks.
+      // One row per hour: the hour label, then 7 day blocks.
       for (let h = 0; h < HOURS; h++) {
         const hourCell = document.createElement('div');
         hourCell.className = 'hour';
         hourCell.textContent = hourLabel(h);
         grid.appendChild(hourCell);
 
-        for (let d = 0; d < DAYS.length; d++) {
-          const index = h * DAYS.length + d;
-          grid.appendChild(createBlock(index));
+        for (let d = 0; d < COLS; d++) {
+          grid.appendChild(createBlock(h * COLS + d, h, d));
         }
       }
+      applySelectionHighlight();
     }
 
-    function createBlock(index) {
+    function createBlock(index, row, col) {
       const block = blocks[index];
       const el = document.createElement('div');
       el.className = 'block';
       el.style.background = block.color;
+      el.dataset.index = index;
+      el.dataset.row = row;
+      el.dataset.col = col;
 
-      // Name label
       const label = document.createElement('span');
       label.className = 'label';
       label.textContent = block.name;
-
-      // Color selector — updates the block background live
-      const color = document.createElement('input');
-      color.type = 'color';
-      color.className = 'color-input';
-      color.value = toHex(block.color);
-      color.title = 'Change color';
-      // Stop the click from also triggering the rename handler
-      color.addEventListener('click', e => e.stopPropagation());
-      color.addEventListener('input', e => {
-        blocks[index].color = e.target.value;
-        el.style.background = e.target.value; // live update
-        saveState();
-      });
-
-      // Clicking the block lets the user rename it
-      el.addEventListener('click', () => renameBlock(index, label));
-
       el.appendChild(label);
-      el.appendChild(color);
+
+      // Begin a (possibly drag) selection from this block.
+      el.addEventListener('pointerdown', e => {
+        e.preventDefault();
+        isDragging = true;
+        dragStart = { row, col };
+        setSelectionRect(dragStart, dragStart);
+      });
+      // Extend the selection rectangle as the pointer moves over blocks.
+      el.addEventListener('pointerenter', () => {
+        if (isDragging) setSelectionRect(dragStart, { row, col });
+      });
       return el;
     }
 
-    // ---------- Interactions ----------
-    function renameBlock(index, label) {
-      const current = blocks[index].name;
-      const next = prompt('Rename block:', current);
-      // null = cancelled; empty string is allowed to be ignored
-      if (next === null) return;
-      const trimmed = next.trim();
-      if (trimmed === '') return;
-      blocks[index].name = trimmed;
-      label.textContent = trimmed; // show immediately
+    // ---------- Selection ----------
+    let isDragging = false;
+    let dragStart = null;
+
+    // Select every block inside the rectangle spanned by two cells.
+    function setSelectionRect(a, b) {
+      const r1 = Math.min(a.row, b.row), r2 = Math.max(a.row, b.row);
+      const c1 = Math.min(a.col, b.col), c2 = Math.max(a.col, b.col);
+      selection.clear();
+      for (let r = r1; r <= r2; r++)
+        for (let c = c1; c <= c2; c++)
+          selection.add(r * COLS + c);
+      applySelectionHighlight();
+    }
+
+    function applySelectionHighlight() {
+      document.querySelectorAll('.block').forEach(el => {
+        el.classList.toggle('selected', selection.has(Number(el.dataset.index)));
+      });
+    }
+
+    function clearSelection() {
+      selection.clear();
+      applySelectionHighlight();
+      updateActionBar();
+    }
+
+    function updateActionBar() {
+      const bar = document.getElementById('action-bar');
+      bar.classList.toggle('open', selection.size > 1);
+      document.getElementById('action-count').textContent = `${selection.size} selected`;
+    }
+
+    // Finish a drag anywhere on the page.
+    document.addEventListener('pointerup', () => {
+      if (!isDragging) return;
+      isDragging = false;
+      if (selection.size === 1) {
+        // A simple click → edit just that block.
+        openEditModal([...selection]);
+      } else {
+        // Multiple blocks → keep them highlighted and offer bulk actions.
+        updateActionBar();
+      }
+    });
+
+    // Clicking outside any block clears the current selection.
+    document.addEventListener('pointerdown', e => {
+      if (!e.target.closest('.block') &&
+          !e.target.closest('.action-bar') &&
+          !e.target.closest('.modal')) {
+        clearSelection();
+      }
+    });
+
+    // ---------- Edit modal ----------
+    const overlay = document.getElementById('overlay');
+    const nameInput = document.getElementById('modal-name');
+    const colorInput = document.getElementById('modal-color');
+    const colorApply = document.getElementById('modal-color-apply');
+    let editTargets = []; // indices the modal currently edits
+
+    function openEditModal(indices) {
+      editTargets = indices;
+      const multi = indices.length > 1;
+      const first = blocks[indices[0]];
+
+      document.getElementById('modal-title').textContent =
+        multi ? `Edit ${indices.length} blocks` : 'Edit block';
+
+      // Name: prefilled for a single block; blank ("keep existing") for many.
+      nameInput.value = multi ? '' : first.name;
+      nameInput.placeholder = multi ? 'Leave blank to keep each name' : '';
+
+      // Color: applied by default for a single block, opt-in for many.
+      colorInput.value = toHex(first.color);
+      colorApply.checked = !multi;
+
+      overlay.classList.add('open');
+      nameInput.focus();
+      nameInput.select();
+    }
+
+    function closeModal() {
+      overlay.classList.remove('open');
+      clearSelection();
+    }
+
+    function saveModal() {
+      const name = nameInput.value.trim();
+      const applyColor = colorApply.checked;
+      const color = colorInput.value;
+
+      editTargets.forEach(idx => {
+        if (name !== '') blocks[idx].name = name;       // empty = keep existing
+        if (applyColor) blocks[idx].color = color;
+      });
+
       saveState();
+      renderSchedule();
+      closeModal();
     }
 
     // <input type="color"> requires a 7-char hex; guard against odd values.
@@ -277,11 +488,30 @@
       return /^#[0-9a-fA-F]{6}$/.test(color) ? color : DEFAULT_COLOR;
     }
 
+    document.getElementById('modal-save').addEventListener('click', saveModal);
+    document.getElementById('modal-cancel').addEventListener('click', closeModal);
+    // Clicking the dimmed backdrop (outside the dialog) cancels.
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+    // Typing a color value auto-enables "Change color".
+    colorInput.addEventListener('input', () => { colorApply.checked = true; });
+    // Keyboard: Enter saves, Escape cancels.
+    nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') saveModal(); });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && overlay.classList.contains('open')) closeModal();
+    });
+
+    // ---------- Action bar ----------
+    document.getElementById('action-edit').addEventListener('click', () => {
+      openEditModal([...selection]);
+    });
+    document.getElementById('action-clear').addEventListener('click', clearSelection);
+
     // ---------- Reset ----------
     document.getElementById('reset-btn').addEventListener('click', () => {
       if (!confirm('Reset all blocks to their defaults?')) return;
       blocks = defaultState();
       saveState();
+      clearSelection();
       renderSchedule();
     });
 
