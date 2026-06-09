@@ -20,6 +20,10 @@
       font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       background: #fafafa;
       color: #222;
+      /* Fill the viewport and lay out vertically so the grid can take the rest */
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
     }
 
     header.page-header {
@@ -58,6 +62,14 @@
       margin-bottom: var(--gap);
     }
 
+    /* Grid fills the remaining vertical space; 5 equal rows so all 35
+       blocks stay visible inside the viewport without scrolling. */
+    .grid {
+      flex: 1;
+      min-height: 0;
+      grid-template-rows: repeat(5, 1fr);
+    }
+
     .weekday {
       text-align: center;
       font-weight: 600;
@@ -71,7 +83,7 @@
     /* ---------- Individual block ---------- */
     .block {
       position: relative;
-      aspect-ratio: 1 / 1;        /* evenly sized, square blocks */
+      min-height: 0;              /* allow blocks to shrink to fit the viewport */
       border-radius: var(--radius);
       background: var(--default-color);
       display: flex;
@@ -87,8 +99,8 @@
     .block:active { transform: scale(0.98); }
 
     .block .label {
-      font-size: 0.85rem;
-      font-weight: 500;
+      font-size: 1.15rem;
+      font-weight: 700;
       text-align: center;
       word-break: break-word;
       /* readable on any background */
@@ -120,7 +132,7 @@
     /* Small responsiveness tweak for narrow screens */
     @media (max-width: 600px) {
       body { padding: 12px; }
-      .block .label { font-size: 0.7rem; }
+      .block .label { font-size: 0.9rem; }
       .weekday { font-size: 0.65rem; }
     }
   </style>
