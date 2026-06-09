@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Week Manager</title>
+  <style>
+    /* ---------- Base layout ---------- */
+    :root {
+      --gap: 10px;
+      --default-color: #e8eaed; /* neutral default block color */
+      --radius: 10px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: #fafafa;
+      color: #222;
+    }
+
+    header.page-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    header.page-header h1 {
+      font-size: 1.4rem;
+      margin: 0;
+    }
+
+    #reset-btn {
+      padding: 8px 14px;
+      border: 1px solid #ccc;
+      background: #fff;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    #reset-btn:hover { background: #f0f0f0; }
+
+    /* ---------- Weekday header row + grid (7 columns) ---------- */
+    .weekday-row,
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr); /* 7 columns = days of week */
+      gap: var(--gap);
+    }
+
+    .weekday-row {
+      margin-bottom: var(--gap);
+    }
+
+    .weekday {
+      text-align: center;
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #555;
+      padding: 4px 0;
+    }
+
+    /* ---------- Individual block ---------- */
+    .block {
+      position: relative;
+      aspect-ratio: 1 / 1;        /* evenly sized, square blocks */
+      border-radius: var(--radius);
+      background: var(--default-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.05s ease;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+      user-select: none;
+      overflow: hidden;
+    }
+    .block:active { transform: scale(0.98); }
+
+    .block .label {
+      font-size: 0.85rem;
+      font-weight: 500;
+      text-align: center;
+      word-break: break-word;
+      /* readable on any background */
+      color: #1a1a1a;
+      text-shadow: 0 1px 1px rgba(255,255,255,0.4);
+      pointer-events: none;
+    }
+
+    /* Color picker pinned to a corner of each block */
+    .block .color-input {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 22px;
+      height: 22px;
+      padding: 0;
+      border: none;
+      border-radius: 50%;
+      background: transparent;
+      cursor: pointer;
+      opacity: 0.85;
+    }
+    .block .color-input:hover { opacity: 1; }
+    /* Hide the native swatch chrome so it reads as a small dot */
+    .block .color-input::-webkit-color-swatch-wrapper { padding: 0; }
+    .block .color-input::-webkit-color-swatch { border: 1px solid rgba(0,0,0,0.25); border-radius: 50%; }
+    .block .color-input::-moz-color-swatch { border: 1px solid rgba(0,0,0,0.25); border-radius: 50%; }
+
+    /* Small responsiveness tweak for narrow screens */
+    @media (max-width: 600px) {
+      body { padding: 12px; }
+      .block .label { font-size: 0.7rem; }
+      .weekday { font-size: 0.65rem; }
+    }
+  </style>
+</head>
+<body>
+  <header class="page-header">
+    <h1>Week Manager</h1>
+    <button id="reset-btn" type="button">Reset</button>
+  </header>
+
+  <!-- Header row labeling each of the 7 columns by weekday -->
+  <div class="weekday-row" id="weekday-row"></div>
+
+  <!-- 7×5 grid of 35 blocks -->
+  <main class="grid" id="grid"></main>
+
+  <script>
+    // ---------- Configuration ----------
+    const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const ROWS = 5;
+    const TOTAL = DAYS.length * ROWS; // 35 blocks
+    const DEFAULT_COLOR = '#e8eaed';   // neutral default
+    const STORAGE_KEY = 'week-manager-blocks';
+
+    // ---------- State ----------
+    // blocks[i] = { name, color }. Loaded from localStorage or built fresh.
+    let blocks = loadState();
+
+    function defaultState() {
+      // 35 blocks with placeholder names and the neutral default color
+      return Array.from({ length: TOTAL }, (_, i) => ({
+        name: `Block ${i + 1}`,
+        color: DEFAULT_COLOR
+      }));
+    }
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        // Basic validation: must be an array of the expected length
+        if (Array.isArray(saved) && saved.length === TOTAL) return saved;
+      } catch (_) { /* ignore malformed data */ }
+      return defaultState();
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(blocks));
+    }
+
+    // ---------- Rendering ----------
+    function renderWeekdays() {
+      const row = document.getElementById('weekday-row');
+      row.innerHTML = '';
+      DAYS.forEach(day => {
+        const cell = document.createElement('div');
+        cell.className = 'weekday';
+        cell.textContent = day;
+        row.appendChild(cell);
+      });
+    }
+
+    function renderGrid() {
+      const grid = document.getElementById('grid');
+      grid.innerHTML = '';
+
+      blocks.forEach((block, index) => {
+        const el = document.createElement('div');
+        el.className = 'block';
+        el.style.background = block.color;
+
+        // Name label
+        const label = document.createElement('span');
+        label.className = 'label';
+        label.textContent = block.name;
+
+        // Color selector — updates the block background live
+        const color = document.createElement('input');
+        color.type = 'color';
+        color.className = 'color-input';
+        color.value = toHex(block.color);
+        color.title = 'Change color';
+        // Stop the click from also triggering the rename handler
+        color.addEventListener('click', e => e.stopPropagation());
+        color.addEventListener('input', e => {
+          blocks[index].color = e.target.value;
+          el.style.background = e.target.value; // live update
+          saveState();
+        });
+
+        // Clicking the block lets the user rename it
+        el.addEventListener('click', () => renameBlock(index, label));
+
+        el.appendChild(label);
+        el.appendChild(color);
+        grid.appendChild(el);
+      });
+    }
+
+    // ---------- Interactions ----------
+    function renameBlock(index, label) {
+      const current = blocks[index].name;
+      const next = prompt('Rename block:', current);
+      // null = cancelled; empty string is allowed to be ignored
+      if (next === null) return;
+      const trimmed = next.trim();
+      if (trimmed === '') return;
+      blocks[index].name = trimmed;
+      label.textContent = trimmed; // show immediately
+      saveState();
+    }
+
+    // The default color is given as a hex string already, but <input type="color">
+    // requires a 7-char hex. This guards against any non-hex values.
+    function toHex(color) {
+      return /^#[0-9a-fA-F]{6}$/.test(color) ? color : DEFAULT_COLOR;
+    }
+
+    // ---------- Reset ----------
+    document.getElementById('reset-btn').addEventListener('click', () => {
+      if (!confirm('Reset all blocks to their defaults?')) return;
+      blocks = defaultState();
+      saveState();
+      renderGrid();
+    });
+
+    // ---------- Init ----------
+    renderWeekdays();
+    renderGrid();
+  </script>
+</body>
+</html>
